@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist",
+        "module": "es6", // Use ES6 modules for modern browsers
+        "target": "es5", // Target ES5 for broader compatibility
+        "jsx": "react-jsx",
+        "strict": true,
+        "moduleResolution": "node",
+        "esModuleInterop": true, // Enable interoperability between CommonJS and ES Modules
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true
+    },
+    "include": ["lib/**/*"], // Adjust the include path as needed
+    "exclude": ["node_modules", "dist"]
+}

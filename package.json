@@ -1,0 +1,14 @@
+{
+  "name": "request-sentinel-js",
+  "version": "0.1.0",
+  "description": "Request Sentinel javascript library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^5.5.4"
+  }
+}
