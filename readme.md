@@ -8,7 +8,7 @@ Javascript SDK for [RequestSentinel](https://requestsentinel.com)
 
 ### Install via CDN
 
-`unpkg.io/requests-sentinel/dist/index.js`
+ `<script src="https://unpkg.com/@request-sentinel/request-sentinel-js@0.1.0/dist/index.js"></script>`
 
 ### Setup
 

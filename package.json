@@ -1,14 +1,27 @@
 {
-  "name": "request-sentinel-js",
+  "author": {
+    "name": "Umar Nizamani",
+    "email": "support@requestsentinel.com",
+    "url": "https://requestsentinel.com"
+  },
+  "name": "@request-sentinel/request-sentinel-js",
   "version": "0.1.0",
   "description": "Request Sentinel javascript library",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/index.js",  
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
   "license": "MIT",
   "dependencies": {
     "typescript": "^5.5.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RequestSentinel/request-sentinel-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RequestSentinel/request-sentinel-js/issues"
+  },
+  "homepage": "https://github.com/RequestSentinel/request-sentinel-js#readme"
 }
