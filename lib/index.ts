@@ -9,6 +9,8 @@ type RequestSentinelOptions = {
 };
 
 class RequestSentinel {
+    static REQUEST_SENTINEL_DOMAIN = 'api.requestsentinel.com'
+
     // Private props
     static API_KEY: string;
     static appVersion: string;
@@ -21,8 +23,17 @@ class RequestSentinel {
     private static _instance: RequestSentinel;
 
     static init(API_KEY: string, appVersion:string, appEnvironment: string, options: RequestSentinelOptions 
-        = {overrideFetch: true, overrideXMLHttpRequest: true, overrideWebSocket: true, ignoreBody: true, debug: true}) {
-        return this._instance || (this._instance = new this(API_KEY, appVersion, appEnvironment, options));
+        = {}) {
+        const defaultOptions: RequestSentinelOptions = {
+            overrideFetch: true,
+            overrideXMLHttpRequest: true,
+            overrideWebSocket: true,
+            ignoreBody: true,
+            debug: false
+        };
+        const mergedOptions = { ...defaultOptions, ...options };
+
+        return this._instance || (this._instance = new this(API_KEY, appVersion, appEnvironment, mergedOptions));
     }
     
     constructor(API_KEY: string, appVersion:string, appEnvironment: string, options: RequestSentinelOptions) {
@@ -52,9 +63,14 @@ class RequestSentinel {
 
     static postToAPI(endpoint: string, method: string) {
         // Ignore all requests to RequestSentinel to avoid infinite loop
-        if (endpoint.indexOf('api.requestsentinel') !== -1) {
+        if (endpoint.indexOf(RequestSentinel.REQUEST_SENTINEL_DOMAIN) !== -1) {
             return;
         }
+
+        // Handle relative URLs
+        const fullEndpoint = new URL(endpoint, window.location.origin).toString();
+
+        // console.log('Request Sentinel | Intercepted outgoing request to', endpoint, 'with method', method)
 
         const url = "https://api.requestsentinel.com/processor/ingest/request/outgoing";
         const headers = {
@@ -66,7 +82,7 @@ class RequestSentinel {
             appVersion: RequestSentinel.appVersion,
             appEnvironment: RequestSentinel.appEnvironment,
             sdk: "js",
-            url: endpoint,
+            url: fullEndpoint,
             method: method,
             timestamp: new Date().toISOString(),
             // timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -77,7 +93,11 @@ class RequestSentinel {
             headers: headers,
             body: JSON.stringify(data)
         })
-        .catch(error => console.error('Request Sentinel | Error:', error));
+        .then(response => {
+            if (response.status !== 201) {
+                console.error('Request Sentinel | Error:', response);
+            }
+        }).catch(error => console.error('Request Sentinel | Error:', error));
     }
 
 
@@ -90,7 +110,11 @@ class RequestSentinel {
                 callback(url as string, method)
             }
             if (RequestSentinel.options.debug) {
-                console.log(`Request Sentinel | [XMLHttpRequest] ${method} request to ${url}`);
+                // Even in debug we ignore requests to request_sentinel to keep the logs clean
+                const urlString = url.toString();
+                if (urlString.indexOf(RequestSentinel.REQUEST_SENTINEL_DOMAIN) == -1) {
+                    console.log(`Request Sentinel | [XMLHttpRequest] ${method} request to ${url}`);
+                }
             }
             return originalOpen.apply(this, arguments as any);
         }
@@ -104,7 +128,7 @@ class RequestSentinel {
 
     _overrideFetch(callback: (url: string, method: string) => void) {
         const originalFetch = window.fetch;
-        window.fetch = function (input, init) {
+        window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
             let method = 'GET';
             let url: string;
 
@@ -126,7 +150,11 @@ class RequestSentinel {
 
             if (callback) {
                 if (RequestSentinel.options.debug) {
-                    console.log(`Request Sentinel | [fetch] ${method} request to ${url}`);
+                    // Even in debug we ignore requests to request_sentinel to keep the logs clean
+                    const urlString = url.toString();
+                    if (urlString.indexOf(RequestSentinel.REQUEST_SENTINEL_DOMAIN) == -1) {
+                        console.log(`Request Sentinel | [fetch] ${method} request to ${url}`);
+                    }
                 }
                 callback(url as string, method)
             }

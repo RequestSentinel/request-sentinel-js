@@ -1,7 +1,17 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var RequestSentinel = /** @class */ (function () {
     function RequestSentinel(API_KEY, appVersion, appEnvironment, options) {
-        // const { overrideFetch = true, overrideXMLHTTP = false } = options;
         RequestSentinel.API_KEY = API_KEY;
         RequestSentinel.appVersion = appVersion;
         RequestSentinel.appEnvironment = appEnvironment;
@@ -20,14 +30,25 @@ var RequestSentinel = /** @class */ (function () {
         console.log('Request Sentinel | Initialised');
     }
     RequestSentinel.init = function (API_KEY, appVersion, appEnvironment, options) {
-        if (options === void 0) { options = { overrideFetch: true, overrideXMLHttpRequest: true, overrideWebSocket: true, ignoreBody: true, debug: true }; }
-        return this._instance || (this._instance = new this(API_KEY, appVersion, appEnvironment, options));
+        if (options === void 0) { options = {}; }
+        var defaultOptions = {
+            overrideFetch: true,
+            overrideXMLHttpRequest: true,
+            overrideWebSocket: true,
+            ignoreBody: true,
+            debug: false
+        };
+        var mergedOptions = __assign(__assign({}, defaultOptions), options);
+        return this._instance || (this._instance = new this(API_KEY, appVersion, appEnvironment, mergedOptions));
     };
     RequestSentinel.postToAPI = function (endpoint, method) {
         // Ignore all requests to RequestSentinel to avoid infinite loop
-        if (endpoint.indexOf('api.requestsentinel') !== -1) {
+        if (endpoint.indexOf(RequestSentinel.REQUEST_SENTINEL_DOMAIN) !== -1) {
             return;
         }
+        // Handle relative URLs
+        var fullEndpoint = new URL(endpoint, window.location.origin).toString();
+        // console.log('Request Sentinel | Intercepted outgoing request to', endpoint, 'with method', method)
         var url = "https://api.requestsentinel.com/processor/ingest/request/outgoing";
         var headers = {
             "Content-Type": "application/json",
@@ -37,7 +58,7 @@ var RequestSentinel = /** @class */ (function () {
             appVersion: RequestSentinel.appVersion,
             appEnvironment: RequestSentinel.appEnvironment,
             sdk: "js",
-            url: endpoint,
+            url: fullEndpoint,
             method: method,
             timestamp: new Date().toISOString(),
             // timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -47,7 +68,11 @@ var RequestSentinel = /** @class */ (function () {
             headers: headers,
             body: JSON.stringify(data)
         })
-            .catch(function (error) { return console.error('Request Sentinel | Error:', error); });
+            .then(function (response) {
+            if (response.status !== 201) {
+                console.error('Request Sentinel | Error:', response);
+            }
+        }).catch(function (error) { return console.error('Request Sentinel | Error:', error); });
     };
     ////// Override Network Functions /////////
     RequestSentinel.prototype._overrideXMLHttpRequest = function (callback) {
@@ -58,7 +83,11 @@ var RequestSentinel = /** @class */ (function () {
                 callback(url, method);
             }
             if (RequestSentinel.options.debug) {
-                console.log("Request Sentinel | [XMLHttpRequest] ".concat(method, " request to ").concat(url));
+                // Even in debug we ignore requests to request_sentinel to keep the logs clean
+                var urlString = url.toString();
+                if (urlString.indexOf(RequestSentinel.REQUEST_SENTINEL_DOMAIN) == -1) {
+                    console.log("Request Sentinel | [XMLHttpRequest] ".concat(method, " request to ").concat(url));
+                }
             }
             return originalOpen.apply(this, arguments);
         };
@@ -90,7 +119,11 @@ var RequestSentinel = /** @class */ (function () {
             }
             if (callback) {
                 if (RequestSentinel.options.debug) {
-                    console.log("Request Sentinel | [fetch] ".concat(method, " request to ").concat(url));
+                    // Even in debug we ignore requests to request_sentinel to keep the logs clean
+                    var urlString = url.toString();
+                    if (urlString.indexOf(RequestSentinel.REQUEST_SENTINEL_DOMAIN) == -1) {
+                        console.log("Request Sentinel | [fetch] ".concat(method, " request to ").concat(url));
+                    }
                 }
                 callback(url, method);
             }
@@ -113,5 +146,6 @@ var RequestSentinel = /** @class */ (function () {
             }
         });
     };
+    RequestSentinel.REQUEST_SENTINEL_DOMAIN = 'api.requestsentinel.com';
     return RequestSentinel;
 }());
