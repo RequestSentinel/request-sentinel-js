@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist",
         "module": "es6", // Use ES6 modules for modern browsers
-        "target": "es5", // Target ES5 for broader compatibility
+        "target": "es6", // Target ES5 for broader compatibility
         "jsx": "react-jsx",
         "strict": true,
         "moduleResolution": "node",

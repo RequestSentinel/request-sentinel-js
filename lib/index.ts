@@ -8,7 +8,7 @@ type RequestSentinelOptions = {
     debug?: boolean;
 };
 
-class RequestSentinel {
+export default class RequestSentinel {
     static REQUEST_SENTINEL_DOMAIN = 'api.requestsentinel.com'
 
     // Private props
@@ -18,6 +18,9 @@ class RequestSentinel {
 
     // Initialise options with default values
     static options: RequestSentinelOptions;
+
+    // Keep track of request to unique domains we are making
+    private static uniqueDomains: Set<string> = new Set();
 
     // We use the singleton pattern for Request Sentinel
     private static _instance: RequestSentinel;
@@ -67,10 +70,28 @@ class RequestSentinel {
             return;
         }
 
-        // Handle relative URLs
-        const fullEndpoint = new URL(endpoint, window.location.origin).toString();
+        // Handle relative URLs and full paths
+        let fullEndpoint: URL;
+        try {
+            fullEndpoint = new URL(endpoint, window.location.origin);
+        } catch (error) {
+            // If URL constructor fails, it's likely an invalid URL
+            console.error('Request Sentinel | Invalid URL:', endpoint);
+            return;
+        }
 
-        // console.log('Request Sentinel | Intercepted outgoing request to', endpoint, 'with method', method)
+        // Extract the base domain
+        const URLToSumbit = fullEndpoint.protocol + '//' + fullEndpoint.host;
+        
+        // Check if this domain has been seen before
+        if (RequestSentinel.uniqueDomains.has(URLToSumbit)) {
+            return; // We've already sent a request for this domain
+        }
+
+        // Add the new domain to our set
+        RequestSentinel.uniqueDomains.add(URLToSumbit);
+    
+        // console.log('Request Sentinel | Saving outgoing request to', URLToSumbit);
 
         const url = "https://api.requestsentinel.com/processor/ingest/request/outgoing";
         const headers = {
@@ -82,7 +103,7 @@ class RequestSentinel {
             appVersion: RequestSentinel.appVersion,
             appEnvironment: RequestSentinel.appEnvironment,
             sdk: "js",
-            url: fullEndpoint,
+            url: URLToSumbit,
             method: method,
             timestamp: new Date().toISOString(),
             // timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
